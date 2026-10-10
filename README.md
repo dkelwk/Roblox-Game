@@ -59,6 +59,7 @@ Rendered previews are in [docs/previews](docs/previews).
 
 ## Documents
 
+- [Handoff](docs/HANDOFF.md): current state, rules and next task. **Start here.**
 - [Implementation blueprint](docs/BLUEPRINT.md): architecture, world layout, milestones, workflows, test strategy, decisions
 - [Art direction](docs/ART_DIRECTION.md): the stylized low-poly rules every asset follows
 - [Studio setup](docs/STUDIO_SETUP.md) and [first Studio verification](docs/STUDIO_VERIFICATION.md)
