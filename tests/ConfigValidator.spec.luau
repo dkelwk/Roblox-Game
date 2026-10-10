@@ -100,6 +100,20 @@ describe("ConfigValidator", function()
 		expect(errors).toContainMatch("FirstSpecimenAlienId 'unknown_alien'")
 	end)
 
+	it("rejects shared (competitive) spawning until it is implemented", function()
+		local errors = ConfigValidator.validate(brokenBundle(function(bundle)
+			bundle.RegionDefinitions.ById.desert.spawnMode = "Shared"
+		end))
+		expect(errors).toContainMatch("Shared %(competitive%) spawning is reserved")
+	end)
+
+	it("rejects a missing spawn mode", function()
+		local errors = ConfigValidator.validate(brokenBundle(function(bundle)
+			bundle.RegionDefinitions.ById.desert.spawnMode = nil
+		end))
+		expect(errors).toContainMatch("spawnMode must be PerPlayer")
+	end)
+
 	it("rejects a client→server remote without a rate limit", function()
 		local errors = ConfigValidator.validate(brokenBundle(function(bundle)
 			bundle.NetworkDefinitions.Remotes.RequestPurchaseUpgrade.rateLimit = nil

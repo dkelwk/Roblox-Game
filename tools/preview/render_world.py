@@ -2,12 +2,13 @@
 Render preview shots of the generated world blockout in Blender.
 
     lune run scripts/build && lune run scripts/export-preview
-    blender -b -P tools/preview/render_world.py -- [--samples 24] [--shots overview,plot]
+    blender -b -P tools/preview/render_world.py -- [--samples 24] [--shots overview,lab]
     # or, with the bpy wheel:  python tools/preview/render_world.py -- ...
 
 Rebuilds every visible part from build/preview/world.json (Roblox Y-up space converted to
-Blender Z-up), applies approximate materials and lighting, and renders camera shots defined
-in Roblox coordinates to build/preview/*.png.
+Blender Z-up), applies approximate materials and lighting, and renders the InspectionShots
+camera views (src/tooling/InspectionShots.luau, the same shots used in Studio) to
+build/preview/<shot>.png.
 
 These renders validate layout, silhouette, palette and readability. They are NOT a substitute
 for checking lighting, materials and VFX in Roblox Studio.
@@ -25,19 +26,6 @@ from mathutils import Matrix, Vector
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 PREVIEW_DIR = os.path.join(ROOT, "build", "preview")
-
-# Shots: name -> (camera position, look-at target, lens mm or "ortho:<scale>"), Roblox coords.
-SHOTS = {
-    "overview": ((0, 1400, -420), (0, 0, -421), "ortho:1500"),
-    "district": ((150, 140, 260), (0, 0, 0), 30),
-    "plot": ((-6, 34, 62), (-52, 6, 80), 32),
-    "first-view": ((-22, 6, 80), (0, 4, -150), 30),
-    "gate-to-desert": ((0, 9, -162), (0, 0, -330), 28),
-    "crash-crater": ((-150, 60, -470), (-228, 4, -545), 32),
-    "outpost": ((60, 50, -680), (0, 8, -775), 30),
-    "nest-ridge": ((140, 50, -440), (262, 14, -525), 30),
-}
-
 
 def roblox_to_blender(v):
     x, y, z = v
@@ -155,7 +143,7 @@ def setup_lighting():
     scene.collection.objects.link(sun)
 
 
-def render(shots, samples):
+def render(shots, samples, only):
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
@@ -167,18 +155,21 @@ def render(shots, samples):
     scene.collection.objects.link(camera)
     scene.camera = camera
     camera.data.clip_end = 6000
-    for name in shots:
-        position, target, lens = SHOTS[name]
-        eye, look = roblox_to_blender(position), roblox_to_blender(target)
+    for shot in shots:
+        if only and shot["id"] not in only:
+            continue
+        eye, look = roblox_to_blender(shot["eye"]), roblox_to_blender(shot["target"])
         camera.location = eye
         camera.rotation_euler = (look - eye).to_track_quat("-Z", "Y").to_euler()
-        if isinstance(lens, str) and lens.startswith("ortho:"):
+        if shot.get("orthographicSize"):
             camera.data.type = "ORTHO"
-            camera.data.ortho_scale = float(lens.split(":")[1])
+            camera.data.ortho_scale = shot["orthographicSize"]
         else:
+            # Match Roblox: fieldOfView is the vertical angle.
             camera.data.type = "PERSP"
-            camera.data.lens = lens
-        scene.render.filepath = os.path.join(PREVIEW_DIR, f"{name}.png")
+            camera.data.sensor_fit = "VERTICAL"
+            camera.data.angle_y = math.radians(shot["fieldOfView"])
+        scene.render.filepath = os.path.join(PREVIEW_DIR, f"{shot['id']}.png")
         bpy.ops.render.render(write_still=True)
         print(f"Rendered {scene.render.filepath}")
 
@@ -187,13 +178,13 @@ def main():
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
     parser.add_argument("--samples", type=int, default=24)
-    parser.add_argument("--shots", default=",".join(SHOTS))
+    parser.add_argument("--shots", default="", help="comma-separated shot ids (default: all)")
     args = parser.parse_args(argv)
     with open(os.path.join(PREVIEW_DIR, "world.json")) as handle:
-        parts = json.load(handle)["parts"]
-    build_scene(parts)
+        data = json.load(handle)
+    build_scene(data["parts"])
     setup_lighting()
-    render([s for s in args.shots.split(",") if s], args.samples)
+    render(data["shots"], args.samples, {s for s in args.shots.split(",") if s})
 
 
 if __name__ == "__main__":

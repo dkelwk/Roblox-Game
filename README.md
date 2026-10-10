@@ -20,13 +20,16 @@ lune run scripts/build        # builds build/RaidArea51.rbxl (code + generated w
 
 Open `build/RaidArea51.rbxl` in Roblox Studio, or live-sync into a development place with
 `rojo serve` and the Rojo Studio plugin. Run `lune run scripts/build` first so the
-generated world exists.
+generated world exists. Full macOS steps, including connecting Claude Code to Studio's MCP
+server, are in [docs/STUDIO_SETUP.md](docs/STUDIO_SETUP.md). The first-run checklist is
+[docs/STUDIO_VERIFICATION.md](docs/STUDIO_VERIFICATION.md).
 
 ## Checks
 
 ```sh
 lune run scripts/check        # format, lint, strict types, build and every spec
 lune run scripts/test         # build + specs only  (add --no-build to reuse the last build)
+lune run scripts/audit        # part/collision/rendering report for the built world
 ```
 
 ## Previews
@@ -56,6 +59,9 @@ Rendered previews are in [docs/previews](docs/previews).
 
 ## Documents
 
-- [Implementation blueprint](docs/BLUEPRINT.md): architecture, world layout, milestones, workflows, test strategy
+- [Implementation blueprint](docs/BLUEPRINT.md): architecture, world layout, milestones, workflows, test strategy, decisions
+- [Art direction](docs/ART_DIRECTION.md): the stylized low-poly rules every asset follows
+- [Studio setup](docs/STUDIO_SETUP.md) and [first Studio verification](docs/STUDIO_VERIFICATION.md)
+- [Blockout audit](docs/BLOCKOUT_AUDIT.md): measured world composition and what becomes Blender meshes
 - [Phase 0 report](docs/PHASE0_REPORT.md): what was inspected, built, tested and what remains
 - [Asset manifest](docs/ASSET_MANIFEST.md): every planned and produced asset and its status

@@ -23,6 +23,8 @@ export type Bundle = {
 local ID_PATTERN = "^[a-z][a-z0-9_]*$"
 local IDLE_STYLES = { Drift = true, Hop = true, Waddle = true, Crackle = true, Rumble = true, Orbit = true }
 local REGION_KINDS = { Hub = true, Extraction = true }
+-- Spawn modes SpecimenService supports today. "Shared" is reserved for future advanced regions.
+local IMPLEMENTED_SPAWN_MODES = { PerPlayer = true }
 local ARG_TYPES = { string = true, number = true, boolean = true }
 
 local ConfigValidator = {}
@@ -260,6 +262,11 @@ local function checkRegions(errors: { string }, regions: any, aliens: any)
 		end
 		if not isNonNegativeInteger(region.unlockCost) then
 			table.insert(errors, `{label}: unlockCost must be a non-negative integer`)
+		end
+		if region.spawnMode == "Shared" then
+			table.insert(errors, `{label}: Shared (competitive) spawning is reserved and not implemented yet`)
+		elseif not IMPLEMENTED_SPAWN_MODES[region.spawnMode] then
+			table.insert(errors, `{label}: spawnMode must be PerPlayer`)
 		end
 		if not isNonNegativeInteger(region.activeCapsulesPerPlayer) or region.activeCapsulesPerPlayer < 1 then
 			table.insert(errors, `{label}: activeCapsulesPerPlayer must be at least 1`)

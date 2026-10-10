@@ -1,16 +1,17 @@
 """
 Specimen Capsule — the item players recover in extraction regions and carry home.
 
-Pilot asset for the Blender pipeline (pending art approval). Readable at a distance on a
-phone: a chunky glass tube with rounded steel caps, a glowing mystery specimen inside, and a
-handle on top so it reads as "pick me up".
+v0.2: stylized low-poly rebuild (pending art approval). Readable at a distance on a phone:
+an octagonal glass tube between chunky chamfered steel caps, a faceted glowing specimen
+inside, an energy ring at the base and a carry handle on top so it reads as "pick me up".
+v0.1 (smooth, 1,376 triangles) is superseded; see docs/ASSET_MANIFEST.md for the comparison.
 
     blender -b -P blender/scripts/build_specimen_capsule.py
     # or: python blender/scripts/build_specimen_capsule.py   (bpy wheel)
 
 Outputs blender/export/SpecimenCapsule.fbx, blender/source/SpecimenCapsule.blend and
 docs/previews/SpecimenCapsule.jpg. Origin: geometric center (it is carried and floats in the
-scanner). Height ≈ 2.8 studs.
+scanner). Height ≈ 3 studs.
 """
 
 import math
@@ -23,32 +24,43 @@ import ra51_pipeline as pipeline  # noqa: E402
 
 ASSET = "SpecimenCapsule"
 TIER = "prop"
+SIDES = 8  # octagonal silhouette shared by caps, bands and glass
 
 
 def build():
     pipeline.reset_scene()
     coll = pipeline.collection(ASSET)
 
-    # Rounded steel end caps
-    pipeline.cylinder(coll, "BaseCap", "SmoothPlastic", "Steel", 0.86, 0.5, (0, 0, 0.25), vertices=20, bevel=0.14)
-    pipeline.cylinder(coll, "TopCap", "SmoothPlastic", "Steel", 0.86, 0.46, (0, 0, 2.43), vertices=20, bevel=0.14)
+    # Chamfered octagonal steel caps
+    pipeline.cylinder(coll, "BaseCap", "SmoothPlastic", "Steel", 0.88, 0.5, (0, 0, 0.25), sides=SIDES, bevel=0.12)
+    pipeline.cylinder(coll, "TopCap", "SmoothPlastic", "Steel", 0.88, 0.46, (0, 0, 2.43), sides=SIDES, bevel=0.12)
     # Dark trim bands where glass meets steel
-    pipeline.cylinder(coll, "BaseBand", "SmoothPlastic", "Floor", 0.8, 0.12, (0, 0, 0.56), vertices=20)
-    pipeline.cylinder(coll, "TopBand", "SmoothPlastic", "Floor", 0.8, 0.12, (0, 0, 2.14), vertices=20)
-    # Glass tube
-    pipeline.cylinder(coll, "Tube", "Glass", "Glass", 0.7, 1.5, (0, 0, 1.35), vertices=24)
-    # Three protective struts
+    pipeline.cylinder(coll, "BaseBand", "SmoothPlastic", "Floor", 0.8, 0.12, (0, 0, 0.56), sides=SIDES)
+    pipeline.cylinder(coll, "TopBand", "SmoothPlastic", "Floor", 0.8, 0.12, (0, 0, 2.14), sides=SIDES)
+    # Faceted glass tube (open ends are hidden inside the bands)
+    pipeline.cylinder(coll, "Tube", "Glass", "Glass", 0.72, 1.5, (0, 0, 1.35), sides=SIDES, capped=False)
+    # Three square protective struts on the octagon's corners
     for index in range(3):
-        angle = math.radians(index * 120 + 30)
-        location = (math.cos(angle) * 0.78, math.sin(angle) * 0.78, 1.35)
-        pipeline.cylinder(coll, f"Strut{index + 1}", "SmoothPlastic", "FacilityCream", 0.075, 1.62, location, vertices=8)
-    # The mystery specimen glow
-    pipeline.sphere(coll, "Specimen", "Neon", "Mint", 0.38, (0, 0, 1.35), segments=12, rings=8)
+        angle = math.radians(index * 120 + 22.5)
+        location = (math.cos(angle) * 0.8, math.sin(angle) * 0.8, 1.35)
+        pipeline.cylinder(
+            coll, f"Strut{index + 1}", "SmoothPlastic", "FacilityCream", 0.09, 1.62, location, sides=4, capped=False
+        )
+    # The mystery specimen: a faceted glowing gem
+    pipeline.icosphere(coll, "Specimen", "Neon", "Mint", 0.42, (0, 0, 1.35))
     # Energy ring on the base cap — swapped to the region's accent color at runtime
-    pipeline.torus(coll, "EnergyRing", "Neon", "Cyan", 0.86, 0.05, (0, 0, 0.42))
+    pipeline.torus(coll, "EnergyRing", "Neon", "Cyan", 0.9, 0.06, (0, 0, 0.42), major_segments=SIDES)
     # Carry handle
     pipeline.torus(
-        coll, "Handle", "SmoothPlastic", "FacilityCream", 0.36, 0.08, (0, 0, 2.7), rotation=(math.pi / 2, 0, 0), major_segments=14
+        coll,
+        "Handle",
+        "SmoothPlastic",
+        "FacilityCream",
+        0.36,
+        0.09,
+        (0, 0, 2.7),
+        rotation=(math.pi / 2, 0, 0),
+        major_segments=SIDES,
     )
 
     pipeline.finalize(coll, origin=(0, 0, 1.35))

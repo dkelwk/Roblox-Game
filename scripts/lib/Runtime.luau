@@ -22,6 +22,33 @@ roblox.implementMethod("Instance", "WaitForChild", function(self, name: string)
 	return child
 end)
 
+--[[
+	Lune 0.10.5's CFrame.lookAt (and two-Vector3 CFrame.new) mirror the Z component of the
+	look direction: looking toward -Z yields a LookVector of +Z. Scripts run here get a CFrame
+	library whose lookAt matches Roblox. Covered by tests/Harness.spec.luau.
+]]
+local function lookAt(at: any, target: any, up: any?): any
+	local look = (target - at).Unit
+	local right = look:Cross(up or roblox.Vector3.yAxis)
+	if right.Magnitude < 1e-6 then
+		-- Looking straight along the up vector; any perpendicular works. Avoid in content.
+		right = look:Cross(roblox.Vector3.zAxis)
+	end
+	right = right.Unit
+	return roblox.CFrame.fromMatrix(at, right, right:Cross(look), -look)
+end
+
+local CFrameCompat = setmetatable({
+	lookAt = lookAt,
+	new = function(...)
+		local first, second = ...
+		if select("#", ...) == 2 and typeof(first) == "Vector3" and typeof(second) == "Vector3" then
+			return lookAt(first, second)
+		end
+		return roblox.CFrame.new(...)
+	end,
+}, { __index = roblox.CFrame })
+
 local ROBLOX_GLOBALS = {
 	"Axes",
 	"BrickColor",
@@ -80,6 +107,7 @@ function Runtime.environment(self, scriptInstance: any?): { [string]: any }
 	for _, name in ROBLOX_GLOBALS do
 		env[name] = (roblox :: any)[name]
 	end
+	env.CFrame = CFrameCompat
 	return env
 end
 

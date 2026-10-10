@@ -51,6 +51,9 @@ local SITE_CLEARANCES = {
 
 local DesertRegion = {}
 
+-- Trail segments (start, finish), exposed for world specs.
+DesertRegion.Trails = TRAILS
+
 local function trailDistance(position: Vector3): number
 	local best = math.huge
 	for _, segment in TRAILS do

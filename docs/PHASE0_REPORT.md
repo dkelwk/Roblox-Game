@@ -147,3 +147,37 @@ Everything below needs Roblox Studio or a device. None of it has been observed i
    PlayerDataService.
 4. **Phase 5 asset order once approved:** ScannerStation → ContainmentChamber → LabShell →
    Glorp, so the core loop's hero objects are upgraded first.
+
+## Addendum — after creative-director review (2026-10-10)
+
+**Correction: mirrored orientations in the Phase 0 world.** Lune 0.10.5, which runs the world
+generator, has a bug: `CFrame.lookAt` mirrors the Z component of the look direction. Every
+object the generator oriented toward a north or south target was built wrong in the
+Phase 0 build:
+
+- the gate labels were swapped;
+- the upgrade station faced away from the road;
+- the trail strips were mirrored (visible in the Phase 0 overview render, which I misread);
+- some outpost fences ran the wrong way;
+- some chamber ID plates and the restricted-airspace signs faced the wrong way.
+
+The Phase 0 build had not been opened in Studio, so nothing downstream depended on it. Fixes:
+
+- the test runtime now provides a Roblox-accurate `lookAt`;
+- `tests/Harness.spec.luau` checks parity with Roblox math;
+- six new world orientation specs check the generated objects directly. With the fix
+  removed, these 10 specs fail.
+
+**Other changes from the review:**
+
+- Gameplay decisions are applied to config: hybrid spawn mode, the persisted Glorp guarantee
+  contract, and rarity independence.
+- Player spawns now face the Extraction Gate, so the objective is in view from the first
+  frame and the default camera has open space behind the player.
+- The scanner hover anchor is raised so a capsule clears the seat.
+- Studio verification tooling: `InspectionShots`, `StudioAudit` and `AssetBinder`.
+- The low-poly art direction is defined and the pipeline is updated for it.
+- Capsule rebuilt as v0.2 at 488 triangles (−65%).
+- The blockout audit is written.
+
+Specs: 76 pass. Lint, format and strict types are clean.

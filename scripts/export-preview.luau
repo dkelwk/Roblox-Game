@@ -1,8 +1,9 @@
 --[[
 	Usage: lune run scripts/export-preview
 
-	Writes the built place's visible world geometry to build/preview/world.json so
-	tools/preview/render_world.py can rebuild it in Blender for preview renders. Run
+	Writes the built place's visible world geometry, plus the InspectionShots camera
+	definitions, to build/preview/world.json so tools/preview/render_world.py can rebuild the
+	scene in Blender and render the same views used for Studio inspection. Run
 	`lune run scripts/build` first.
 ]]
 
@@ -43,8 +44,19 @@ for _, descendant in world:GetDescendants() do
 	end
 end
 
+local shots = {}
+for _, shot in runtime:use("ServerStorage.Tooling.InspectionShots").List do
+	table.insert(shots, {
+		id = shot.id,
+		eye = { shot.eye.X, shot.eye.Y, shot.eye.Z },
+		target = { shot.target.X, shot.target.Y, shot.target.Z },
+		fieldOfView = shot.fieldOfView,
+		orthographicSize = shot.orthographicSize,
+	})
+end
+
 if not fs.isDir("build/preview") then
 	fs.writeDir("build/preview")
 end
-fs.writeFile("build/preview/world.json", serde.encode("json", { parts = parts }))
+fs.writeFile("build/preview/world.json", serde.encode("json", { parts = parts, shots = shots }))
 print(`Exported {#parts} visible parts to build/preview/world.json`)

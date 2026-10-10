@@ -9,6 +9,7 @@ local fs = require("@lune/fs")
 local process = require("@lune/process")
 
 local Build = require("./lib/Build")
+local Geometry = require("./lib/Geometry")
 local Runtime = require("./lib/Runtime")
 local TestKit = require("./lib/TestKit")
 
@@ -40,6 +41,7 @@ for _, name in specFiles do
 	local runtime = Runtime.loadPlace(Build.PLACE_PATH)
 	local environment = runtime:environment(nil)
 	environment.runtime = runtime
+	environment.Geometry = Geometry
 	environment.use = function(path: string)
 		return runtime:use(path)
 	end

@@ -21,3 +21,5 @@ globals:
     args: []
   runtime:
     property: read-only
+  Geometry:
+    any: true

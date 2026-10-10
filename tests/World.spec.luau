@@ -30,38 +30,10 @@ end
 local allParts = descendantsOfClass(world, "BasePart") :: { BasePart }
 
 -- Solid geometry a character or capsule could collide with (boundaries excluded).
-local solidParts = {}
-for _, part in allParts do
-	if part.CanCollide and not part:HasTag(GameConfig.Tags.Boundary) then
-		table.insert(solidParts, part)
-	end
-end
-
--- Whether `point` lies inside `part`, shrunk by `margin`. Wedges are treated as boxes,
--- which over-approximates them (safe for "nothing is buried" checks).
-local function contains(part: BasePart, point: Vector3, margin: number): boolean
-	local localPoint = part.CFrame:PointToObjectSpace(point)
-	local half = part.Size / 2
-	if part:IsA("Part") and part.Shape == Enum.PartType.Ball then
-		return localPoint.Magnitude < half.X - margin
-	elseif part:IsA("Part") and part.Shape == Enum.PartType.Cylinder then
-		local radius = math.min(half.Y, half.Z)
-		return math.abs(localPoint.X) < half.X - margin
-			and math.sqrt(localPoint.Y ^ 2 + localPoint.Z ^ 2) < radius - margin
-	end
-	return math.abs(localPoint.X) < half.X - margin
-		and math.abs(localPoint.Y) < half.Y - margin
-		and math.abs(localPoint.Z) < half.Z - margin
-end
+local solidParts = Geometry.solidParts(world, GameConfig.Tags.Boundary)
 
 local function blockers(point: Vector3, margin: number): { string }
-	local names = {}
-	for _, part in solidParts do
-		if contains(part, point, margin) then
-			table.insert(names, part:GetFullName())
-		end
-	end
-	return names
+	return Geometry.blockers(solidParts, point, margin)
 end
 
 -- Samples a straight walking route at torso height and reports anything in the way.
@@ -132,16 +104,41 @@ describe("World blockout › lab district", function()
 		end
 	end)
 
-	it("spawns players in front of their lab, facing the road, with a clear walk to the road and the door", function()
+	it("spawns players in front of their lab facing the gate, with clear walks to the road and the door", function()
+		local gate = WorldLayout.District.ExtractionGate.Position
 		for _, plot in plots do
+			local origin = WorldLayout.Plots[plot:GetAttribute(GameConfig.Attributes.PlotIndex)]
 			local spawnPoint = plot:FindFirstChild("Markers"):FindFirstChild("SpawnPoint") :: BasePart
-			local towardRoad = Vector3.new(-math.sign(spawnPoint.CFrame.Position.X), 0, 0)
-			expect(spawnPoint.CFrame.LookVector:Dot(towardRoad)).toBeNear(1)
-			local ground = spawnPoint.CFrame.Position * Vector3.new(1, 0, 1)
+			local position = spawnPoint.CFrame.Position
+			local towardGate = (Vector3.new(gate.X, position.Y, gate.Z) - position).Unit
+			expect(spawnPoint.CFrame.LookVector:Dot(towardGate)).toBeNear(1)
+			local ground = position * Vector3.new(1, 0, 1)
 			local roadEdge = Vector3.new(math.sign(ground.X) * WorldLayout.District.RoadWidth / 2, 0, ground.Z)
 			expect(routeBlockers(ground, roadEdge, 3)).toBeEmpty()
-			local doorway = (spawnPoint.CFrame * CFrame.new(0, 0, 18)).Position * Vector3.new(1, 0, 1)
+			local doorway = (origin * CFrame.new(0, 0, -8)).Position
 			expect(routeBlockers(ground, doorway, 3)).toBeEmpty()
+			-- The default camera sits ~12 studs behind the character; keep that space open.
+			local cameraSpot = (spawnPoint.CFrame * CFrame.new(0, 3, 12)).Position
+			expect(Geometry.blockers(solidParts, cameraSpot, 0)).toBeEmpty()
+		end
+	end)
+
+	it("leaves room for a hovering capsule at every scanner anchor", function()
+		-- Specimen Capsule v0.2 is ~1.9 x 3.2 studs with a centered origin.
+		for _, plot in plots do
+			local anchor = plot:FindFirstChild("Markers"):FindFirstChild("ScannerAnchor") :: BasePart
+			for _, offset in
+				{
+					Vector3.new(0, -1.6, 0),
+					Vector3.new(0, 1.6, 0),
+					Vector3.new(0.95, 0, 0),
+					Vector3.new(-0.95, 0, 0),
+					Vector3.new(0, 0, 0.95),
+					Vector3.new(0, 0, -0.95),
+				}
+			do
+				expect(blockers(anchor.CFrame.Position + offset, 0)).toBeEmpty()
+			end
 		end
 	end)
 
@@ -352,6 +349,92 @@ describe("World blockout › art direction and budgets", function()
 		local district = world:FindFirstChild("LabDistrict")
 		for _, name in { "MainFacility", "ExtractionGate" } do
 			expect((district:FindFirstChild(name) :: Model).ModelStreamingMode).toBe(Enum.ModelStreamingMode.Persistent)
+		end
+	end)
+end)
+
+describe("World blockout › orientation", function()
+	local district = world:FindFirstChild("LabDistrict")
+	local desert = world:FindFirstChild("DesertRegion")
+
+	local function labelOn(part: Instance, face: Enum.NormalId): string?
+		for _, gui in part:GetChildren() do
+			if gui:IsA("SurfaceGui") and gui.Face == face then
+				return (gui:FindFirstChildWhichIsA("TextLabel") :: TextLabel).Text
+			end
+		end
+		return nil
+	end
+
+	it("labels the gate EXTRACTION ZONE on the district side and LAB DISTRICT on the desert side", function()
+		local beam = district:FindFirstChild("ExtractionGate"):FindFirstChild("Beam") :: BasePart
+		-- Front faces along LookVector, Back faces against it.
+		expect(beam.CFrame.LookVector:Dot(Vector3.new(0, 0, -1))).toBeNear(1)
+		expect(labelOn(beam, Enum.NormalId.Back)).toBe("EXTRACTION ZONE")
+		expect(labelOn(beam, Enum.NormalId.Front)).toBe("LAB DISTRICT")
+	end)
+
+	it("turns the upgrade station's screen toward the road", function()
+		local screen = district:FindFirstChild("UpgradeStation"):FindFirstChild("Hologram") :: BasePart
+		expect(screen.CFrame.LookVector.Z < -0.9).toBe(true)
+		local interact = district:FindFirstChild("UpgradeStation"):FindFirstChild("InteractPoint") :: BasePart
+		expect(interact.CFrame.Position.Z < screen.CFrame.Position.Z).toBe(true)
+	end)
+
+	it("aligns every trail strip with its segment", function()
+		local DesertRegion = use("ServerStorage.Tooling.WorldBlockout.DesertRegion")
+		local strips = {}
+		for _, part in desert:FindFirstChild("Trails"):GetChildren() do
+			if part.Name == "Trail" then
+				table.insert(strips, part)
+			end
+		end
+		expect(#strips).toBe(#DesertRegion.Trails)
+		for _, segment in DesertRegion.Trails do
+			local a, b = segment[1], segment[2]
+			local middle = (a + b) / 2
+			local closest, best = nil, math.huge
+			for _, strip in strips do
+				local distance = (strip.CFrame.Position - middle).Magnitude
+				if distance < best then
+					closest, best = strip, distance
+				end
+			end
+			expect(best).toBeAtMost(0.5)
+			expect(math.abs(closest.CFrame.LookVector:Dot((b - a).Unit))).toBeNear(1)
+		end
+	end)
+
+	it("turns every chamber ID plate toward the lab interior", function()
+		for _, plot in district:FindFirstChild("Plots"):GetChildren() do
+			local origin = WorldLayout.Plots[plot:GetAttribute(GameConfig.Attributes.PlotIndex)]
+			local center = (origin * CFrame.new(0, 0, 6)).Position
+			for _, chamber in plot:FindFirstChild("Chambers"):GetChildren() do
+				local plate = chamber:FindFirstChild("IdPlate") :: BasePart
+				local toCenter = (center - plate.CFrame.Position) * Vector3.new(1, 0, 1)
+				expect(plate.CFrame.LookVector:Dot(toCenter.Unit) > 0.9).toBe(true)
+			end
+		end
+	end)
+
+	it("keeps the outpost's fences on the outpost", function()
+		local site = WorldLayout.Desert.Sites.Outpost
+		for _, fence in desert:FindFirstChild("ResearchOutpost"):GetChildren() do
+			if fence.Name == "SecurityFence" then
+				for _, post in fence:GetChildren() do
+					local offset = (post :: BasePart).CFrame.Position - site
+					expect(math.abs(offset.X) <= 64 and math.abs(offset.Z) <= 50).toBe(true)
+				end
+			end
+		end
+	end)
+
+	it("faces the restricted-airspace signs toward the players (south)", function()
+		for _, sign in desert:FindFirstChild("DistantFacility"):GetChildren() do
+			if sign.Name == "Sign" then
+				local board = sign:FindFirstChild("Board") :: BasePart
+				expect(board.CFrame.LookVector.Z > 0.9).toBe(true)
+			end
 		end
 	end)
 end)

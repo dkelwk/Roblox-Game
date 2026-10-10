@@ -59,7 +59,12 @@ GameConfig.Jetpack = {
 }
 
 GameConfig.Onboarding = {
-	-- A brand-new player's first scan always reveals this species.
+	--[[
+		Every new player's first *successful* scan reveals this species; later scans use the
+		region's spawn odds. Server-authoritative: ScannerService decides, and the flag that the
+		guarantee was used is saved in the same data write that records the specimen, so a scan
+		interrupted before its result is committed never consumes it.
+	]]
 	FirstSpecimenAlienId = "glorp",
 	-- Design targets (seconds since joining) that config pacing tests check against.
 	TargetFirstExtractionSeconds = 180,

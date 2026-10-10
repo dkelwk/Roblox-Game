@@ -13,6 +13,15 @@ local WorldLayout = require(script.Parent.WorldLayout)
 
 export type RegionKind = "Hub" | "Extraction"
 
+--[[
+	How a region's capsules exist (hybrid model):
+	  PerPlayer — each player has their own instanced capsules. Reliable for beginners; nobody
+	              can be locked out. Used by the starter region.
+	  Shared    — one competitive pool everyone races for. Reserved for future advanced regions;
+	              NOT implemented yet, so the validator rejects it until SpecimenService supports it.
+]]
+export type SpawnMode = "PerPlayer" | "Shared"
+
 export type SpecimenEntry = {
 	alienId: string,
 	weight: number,
@@ -25,8 +34,8 @@ export type RegionDefinition = {
 	bounds: WorldLayout.Bounds,
 	-- Extraction regions only:
 	unlockCost: number?,
-	-- Capsules are instanced per player so newcomers always have something to find and
-	-- nobody can be locked out by other players clearing the map.
+	spawnMode: SpawnMode?,
+	-- PerPlayer regions: how many capsules each player has available at once.
 	activeCapsulesPerPlayer: number?,
 	capsuleRespawnSeconds: number?,
 	specimenTable: { SpecimenEntry }?,
@@ -47,6 +56,7 @@ local ById: { [string]: RegionDefinition } = {
 		kind = "Extraction",
 		bounds = WorldLayout.Desert.Bounds,
 		unlockCost = 0,
+		spawnMode = "PerPlayer",
 		activeCapsulesPerPlayer = 6,
 		capsuleRespawnSeconds = 25,
 		specimenTable = {

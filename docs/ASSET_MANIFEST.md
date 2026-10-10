@@ -1,7 +1,9 @@
 # Asset Manifest
 
 The single record of every planned and produced asset. Update the row in the same change
-that adds or modifies an asset.
+that adds or modifies an asset. Every asset follows [ART_DIRECTION.md](ART_DIRECTION.md)
+(stylized low-poly). Budget tiers are triangle ceilings: hero 4000, creature 2000, prop 800,
+scatter 250.
 
 **Status values**
 
@@ -25,8 +27,8 @@ that adds or modifies an asset.
 
 | Asset | Category | Version | Status | Budget tier | Triangles | Origin | Notes |
 |---|---|---|---|---|---|---|---|
-| SpecimenCapsule | Gameplay | 0.1 | Pilot | prop (1500) | 1376 | Geometric center | 1.82 × 1.82 × 3.13 studs. FBX round-trip verified in Blender; **Roblox import not yet verified**. Energy ring meant to take the region accent at runtime. |
-| World blockout | Environment | 0.1 | Blockout | — | 1711 parts | — | `src/tooling/WorldBlockout`, generated to `Workspace.World`. Lab district, 6 plots, desert region. |
+| SpecimenCapsule | Gameplay | 0.2 | Pilot | prop (800) | 488 | Geometric center | Stylized low-poly rebuild (v0.1 smooth: 1,376 triangles, superseded); see `previews/SpecimenCapsule-comparison.jpg`. 1.92 × 1.92 × 3.15 studs, 11 meshes. FBX round-trip verified in Blender; **Roblox import not yet verified** (STUDIO_VERIFICATION § 6). Energy ring meant to take the region accent at runtime. |
+| World blockout | Environment | 0.1 | Blockout | — | 1711 parts | — | `src/tooling/WorldBlockout`, generated to `Workspace.World`. Lab district, 6 plots, desert region. Audit: [BLOCKOUT_AUDIT.md](BLOCKOUT_AUDIT.md). |
 
 ## Planned (vertical slice)
 

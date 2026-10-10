@@ -68,6 +68,10 @@ describe("Shared configuration", function()
 		expect(byRarity.epic / total).toBeAtMost(0.05)
 	end)
 
+	it("instances the starter region's capsules per player", function()
+		expect(RegionDefinitions.ById[RegionDefinitions.StarterRegionId].spawnMode).toBe("PerPlayer")
+	end)
+
 	it("lets a new player afford a first upgrade within the onboarding target", function()
 		-- Assumes the first extraction lands on the target time, reveals the guaranteed
 		-- onboarding species, and that species then earns in a chamber.

@@ -15,6 +15,9 @@ Conventions
   Roblox colors MeshParts from the palette at bind time, so stylized assets need no
   textures and stay consistent with Palette.luau.
 * Palette colors are read from src/shared/Config/Palette.luau, the single source of truth.
+* Stylized low-poly (docs/ART_DIRECTION.md): radial segment counts come from
+  `radial_segments(radius)` so density is consistent across assets; hard surfaces are flat
+  shaded with one-segment chamfers; only organic forms use smooth shading; no subdivision.
 
 Runs under `blender -b -P <script>` or the `bpy` wheel (`python <script>`).
 """
@@ -31,13 +34,29 @@ EXPORT_DIR = os.path.join(ROOT, "blender", "export")
 SOURCE_DIR = os.path.join(ROOT, "blender", "source")
 PREVIEW_DIR = os.path.join(ROOT, "docs", "previews")
 
-# Triangle budgets per asset tier, sized for mid-range phones. Raise only with device tests.
+# Triangle ceilings per asset tier for the low-poly style, sized for mid-range phones.
+# Exceeding one fails the build. Raise only with on-device measurements.
 TRIANGLE_BUDGETS = {
-    "hero": 6000,  # scanner station, lab shell
-    "creature": 3000,  # each alien
-    "prop": 1500,  # capsule, consoles, crates
-    "scatter": 400,  # rocks, plants, repeated in bulk
+    "hero": 4000,  # scanner station, lab shell, gate
+    "creature": 2000,  # each alien
+    "prop": 800,  # capsule, consoles, chambers
+    "scatter": 250,  # rocks, plants, crates: repeated in bulk
 }
+
+SMOOTH_ANGLE = math.radians(35)
+
+
+def radial_segments(radius):
+    """Sides for a curved surface of this radius (studs). One table keeps density consistent."""
+    if radius < 0.25:
+        return 6
+    if radius < 1.0:
+        return 8
+    if radius < 3.0:
+        return 12
+    if radius < 8.0:
+        return 16
+    return 24
 
 ROBLOX_MATERIALS = {"SmoothPlastic", "Glass", "Neon", "Metal", "Sand", "Sandstone"}
 
@@ -109,52 +128,74 @@ def collection(name):
     return coll
 
 
-def _finish(obj, coll, part, roblox_material, token, bevel, segments):
+def _finish(obj, coll, part, roblox_material, token, bevel, shading):
+    """Name, color and file the object. shading: "flat" (hard surface) or "smooth" (organic)."""
+    if shading not in ("flat", "smooth"):
+        raise ValueError(f"shading must be 'flat' or 'smooth', got {shading}")
     obj.name = f"{part}__{roblox_material}__{token}"
     obj.data.materials.append(material(roblox_material, token))
     for c in obj.users_collection:
         c.objects.unlink(obj)
     coll.objects.link(obj)
     if bevel > 0:
+        # A single-segment chamfer: catches light on edges without adding curvature.
         modifier = obj.modifiers.new("Bevel", "BEVEL")
         modifier.width = bevel
-        modifier.segments = segments
+        modifier.segments = 1
         modifier.limit_method = "ANGLE"
-    for poly in obj.data.polygons:
-        poly.use_smooth = True
+    obj["ra51_shading"] = shading
     return obj
 
 
-def cylinder(coll, part, roblox_material, token, radius, depth, location, vertices=24, bevel=0.0, segments=2):
-    bpy.ops.mesh.primitive_cylinder_add(vertices=vertices, radius=radius, depth=depth, location=location)
-    return _finish(bpy.context.active_object, coll, part, roblox_material, token, bevel, segments)
+def cylinder(
+    coll, part, roblox_material, token, radius, depth, location, sides=None, bevel=0.0, capped=True, shading="flat"
+):
+    bpy.ops.mesh.primitive_cylinder_add(
+        vertices=sides or radial_segments(radius),
+        radius=radius,
+        depth=depth,
+        location=location,
+        end_fill_type="NGON" if capped else "NOTHING",
+    )
+    return _finish(bpy.context.active_object, coll, part, roblox_material, token, bevel, shading)
 
 
-def box(coll, part, roblox_material, token, size, location, bevel=0.0, segments=2):
+def box(coll, part, roblox_material, token, size, location, bevel=0.0, shading="flat"):
     bpy.ops.mesh.primitive_cube_add(size=1, location=location)
     obj = bpy.context.active_object
     obj.scale = size
     bpy.ops.object.transform_apply(scale=True)
-    return _finish(obj, coll, part, roblox_material, token, bevel, segments)
+    return _finish(obj, coll, part, roblox_material, token, bevel, shading)
 
 
-def sphere(coll, part, roblox_material, token, radius, location, segments=20, rings=12):
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=segments, ring_count=rings, radius=radius, location=location)
-    return _finish(bpy.context.active_object, coll, part, roblox_material, token, 0, 0)
+def icosphere(coll, part, roblox_material, token, radius, location, subdivisions=2, shading="flat"):
+    """Faceted sphere; subdivisions=2 is 80 triangles, the default for small rounded forms."""
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=subdivisions, radius=radius, location=location)
+    return _finish(bpy.context.active_object, coll, part, roblox_material, token, 0, shading)
 
 
 def torus(
-    coll, part, roblox_material, token, major, minor, location, rotation=(0, 0, 0), major_segments=20, minor_segments=6
+    coll,
+    part,
+    roblox_material,
+    token,
+    major,
+    minor,
+    location,
+    rotation=(0, 0, 0),
+    major_segments=None,
+    minor_segments=4,
+    shading="flat",
 ):
     bpy.ops.mesh.primitive_torus_add(
         major_radius=major,
         minor_radius=minor,
-        major_segments=major_segments,
+        major_segments=major_segments or radial_segments(major),
         minor_segments=minor_segments,
         location=location,
         rotation=rotation,
     )
-    return _finish(bpy.context.active_object, coll, part, roblox_material, token, 0, 0)
+    return _finish(bpy.context.active_object, coll, part, roblox_material, token, 0, shading)
 
 
 def finalize(coll, origin=(0, 0, 0)):
@@ -165,8 +206,13 @@ def finalize(coll, origin=(0, 0, 0)):
         obj.select_set(True)
         for modifier in list(obj.modifiers):
             bpy.ops.object.modifier_apply(modifier=modifier.name)
-        # Smooth curved surfaces, keep flat caps and hard edges crisp (exported as FBX normals).
-        obj.data.set_sharp_from_angle(angle=math.radians(35))
+        # Flat: every face its own normal (faceted). Smooth: soft, but edges sharper than
+        # SMOOTH_ANGLE stay crisp. Exported as FBX normals.
+        smooth = obj.get("ra51_shading") == "smooth"
+        for poly in obj.data.polygons:
+            poly.use_smooth = smooth
+        if smooth:
+            obj.data.set_sharp_from_angle(angle=SMOOTH_ANGLE)
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
         bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
         obj.select_set(False)

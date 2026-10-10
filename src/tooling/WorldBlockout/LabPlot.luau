@@ -47,6 +47,14 @@ local LabPlot = {}
 
 LabPlot.ChamberSlots = CHAMBER_SLOTS
 
+-- Where a lab's owner appears: in the front yard, facing the Extraction Gate so the
+-- objective is in view from the first frame (and the camera behind them has open space).
+function LabPlot.spawnCFrame(origin: CFrame): CFrame
+	local position = (origin * CFrame.new(0, PAD_TOP + 3, FRONT_Z - 10)).Position
+	local gate = WorldLayout.District.ExtractionGate.Position
+	return CFrame.lookAt(position, Vector3.new(gate.X, position.Y, gate.Z))
+end
+
 local function buildShell(model: Model, origin: CFrame, accent: Color3)
 	local function at(x: number, y: number, z: number): CFrame
 		return origin * CFrame.new(x, y, z)
@@ -221,7 +229,8 @@ local function buildScanner(model: Model, origin: CFrame, markers: Folder)
 	light.Shadows = false
 	light.Parent = emitter
 	Props.console(scanner, base * CFrame.new(8, 0, -1) * Kit.yaw(180))
-	Kit.marker(markers, "ScannerAnchor", base * CFrame.new(0, 5.4, 0))
+	-- Hover point for a carried capsule (~3 studs tall, centered origin): floats just above the seat.
+	Kit.marker(markers, "ScannerAnchor", base * CFrame.new(0, 6.2, 0))
 end
 
 local function buildChamber(parent: Instance, origin: CFrame, slotIndex: number, slot: Vector2)
@@ -272,8 +281,7 @@ local function buildFrontYard(model: Model, origin: CFrame, markers: Folder)
 		Kit.ball(model, "PlanterShrub", 2.6, (planter * CFrame.new(1.6, 2.0, 0.4)).Position, World.SageDark)
 	end
 
-	-- Where the owner's character appears, facing the road.
-	Kit.marker(markers, "SpawnPoint", at(0, PAD_TOP + 3, FRONT_Z - 10))
+	Kit.marker(markers, "SpawnPoint", LabPlot.spawnCFrame(origin))
 end
 
 function LabPlot.build(parent: Instance, plotIndex: number, origin: CFrame): Model

@@ -6,6 +6,9 @@
 	shipped; change `displayName` instead.
 
 	Descriptions and colors are initial creative briefs pending art approval.
+
+	A species' appearance is independent of its rarity (Zib is purple and Common). Rarity is
+	presented only through UI frames, badges, lighting and discovery VFX (RarityDefinitions).
 ]]
 
 local RarityDefinitions = require(script.Parent.RarityDefinitions)
