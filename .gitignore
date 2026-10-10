@@ -1,0 +1,18 @@
+# Build outputs (regenerate with `lune run build`)
+/build/
+/assets/generated/
+
+# Blender autosaves and render previews
+*.blend1
+*.blend2
+/blender/previews/
+
+# Editor / OS
+.DS_Store
+*.lock.rbxl
+*.rbxl.lock
+sourcemap.json
+roblox.yml
+
+# Python
+__pycache__/

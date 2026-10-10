@@ -1,0 +1,8 @@
+---
+# Lune runtime globals for scripts/ (build tooling, not game code).
+base: luau
+name: lune
+globals:
+  warn:
+    args:
+      - type: "..."

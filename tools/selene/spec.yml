@@ -1,0 +1,23 @@
+---
+# Globals injected into tests/*.spec.luau by scripts/test.luau, on top of Roblox.
+base: roblox
+name: spec
+globals:
+  describe:
+    args:
+      - type: string
+      - type: function
+  it:
+    args:
+      - type: string
+      - type: function
+  expect:
+    args:
+      - type: any
+  use:
+    args:
+      - type: string
+  freshRuntime:
+    args: []
+  runtime:
+    property: read-only

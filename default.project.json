@@ -1,0 +1,86 @@
+{
+	"name": "RaidArea51",
+	"tree": {
+		"$className": "DataModel",
+		"ReplicatedStorage": {
+			"Shared": {
+				"$path": "src/shared"
+			}
+		},
+		"ServerScriptService": {
+			"Server": {
+				"$path": "src/server"
+			}
+		},
+		"ServerStorage": {
+			"Tooling": {
+				"$path": "src/tooling"
+			}
+		},
+		"StarterPlayer": {
+			"StarterPlayerScripts": {
+				"Client": {
+					"$path": "src/client"
+				}
+			}
+		},
+		"Workspace": {
+			"$properties": {
+				"StreamingEnabled": true
+			},
+			"World": {
+				"$path": {
+					"optional": "assets/generated/World.rbxm"
+				}
+			}
+		},
+		"Lighting": {
+			"$properties": {
+				"Technology": "ShadowMap",
+				"ClockTime": 14.5,
+				"GeographicLatitude": 37.2,
+				"Brightness": 2.6,
+				"Ambient": [0.38, 0.36, 0.42],
+				"OutdoorAmbient": [0.62, 0.56, 0.52],
+				"ColorShift_Top": [1.0, 0.94, 0.84],
+				"EnvironmentDiffuseScale": 0.5,
+				"EnvironmentSpecularScale": 0.4,
+				"GlobalShadows": true
+			},
+			"Atmosphere": {
+				"$className": "Atmosphere",
+				"$properties": {
+					"Density": 0.3,
+					"Offset": 0.18,
+					"Color": [0.96, 0.85, 0.72],
+					"Decay": [0.74, 0.58, 0.5],
+					"Glare": 0.15,
+					"Haze": 1.1
+				}
+			},
+			"ColorGrade": {
+				"$className": "ColorCorrectionEffect",
+				"$properties": {
+					"Saturation": 0.12,
+					"Contrast": 0.06,
+					"Brightness": 0.02
+				}
+			},
+			"Bloom": {
+				"$className": "BloomEffect",
+				"$properties": {
+					"Intensity": 0.6,
+					"Size": 22,
+					"Threshold": 1.4
+				}
+			},
+			"SunRays": {
+				"$className": "SunRaysEffect",
+				"$properties": {
+					"Intensity": 0.04,
+					"Spread": 0.6
+				}
+			}
+		}
+	}
+}
